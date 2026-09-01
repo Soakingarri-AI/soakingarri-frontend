@@ -9,8 +9,10 @@ import {
   History as HistoryIcon,
   Settings,
   MoreVertical,
+  LogOut,
+  Loader2,
 } from "lucide-react";
-import { useUser } from "../hooks/useAuth";
+import { useUser, useLogout } from "../hooks/useAuth";
 import { useAskSessions, useDeleteAskSession } from "../hooks/useAsk";
 
 const NAV_PRIMARY = [
@@ -27,6 +29,7 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({
   const { data: user } = useUser();
   const { data: sessions } = useAskSessions();
   const deleteSession = useDeleteAskSession();
+  const logout = useLogout();
 
   const initials = user?.full_name
     ? user.full_name
@@ -173,6 +176,21 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({
               {label}
             </NavLink>
           ))}
+
+          {/* Log out */}
+          <button
+            type="button"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all text-[#969696] hover:bg-white/5 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {logout.isPending ? (
+              <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+            ) : (
+              <LogOut className="w-4 h-4 shrink-0" />
+            )}
+            {logout.isPending ? "Logging out…" : "Log Out"}
+          </button>
 
           {/* User card */}
           <div
