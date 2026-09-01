@@ -57,11 +57,14 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't attempt refresh on the refresh or login endpoints themselves
-      if (
-        originalRequest.url === AUTH_ENDPOINTS.REFRESH ||
-        originalRequest.url === AUTH_ENDPOINTS.LOGIN
-      ) {
+      // A failed login attempt is not a dead session — let the caller
+      // (useLogin's onError) show an inline error instead of reloading.
+      if (originalRequest.url === AUTH_ENDPOINTS.LOGIN) {
+        return Promise.reject(error);
+      }
+
+      // A failed refresh means the session truly is dead — bounce to login.
+      if (originalRequest.url === AUTH_ENDPOINTS.REFRESH) {
         clearTokens();
         window.location.href = '/login';
         return Promise.reject(error);
