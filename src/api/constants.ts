@@ -9,3 +9,9 @@ export const AUTH_ENDPOINTS = {
   PASSWORD_RESET_REQUEST: '/api/v1/auth/password-reset/request',
   PASSWORD_RESET_CONFIRM: '/api/v1/auth/password-reset/confirm',
 };
+
+export const ASK_ENDPOINTS = {
+  ASK: '/api/v1/ask',
+  SESSIONS: '/api/v1/ask/sessions',
+  SESSION: (sessionId: string) => `/api/v1/ask/sessions/${sessionId}`,
+};

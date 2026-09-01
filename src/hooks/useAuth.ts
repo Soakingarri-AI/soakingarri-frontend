@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, setTokens, clearTokens } from '../api/client';
 import { AUTH_ENDPOINTS } from '../api/constants';
-import type { User, AuthTokens } from '../api/types';
+import type {
+  User,
+  AuthTokens,
+  PasswordResetRequestPayload,
+  PasswordResetConfirmPayload,
+  PasswordResetResponse,
+} from '../api/types';
 
 // Login Hook
 export const useLogin = () => {
@@ -65,5 +71,32 @@ export const useUser = () => {
     },
     retry: false, // Don't retry if 401
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Request Password Reset Hook — always "succeeds" from the caller's perspective
+// (the API deliberately doesn't reveal whether the email exists)
+export const useRequestPasswordReset = () => {
+  return useMutation({
+    mutationFn: async (payload: PasswordResetRequestPayload) => {
+      const { data } = await apiClient.post<PasswordResetResponse>(
+        AUTH_ENDPOINTS.PASSWORD_RESET_REQUEST,
+        payload
+      );
+      return data;
+    },
+  });
+};
+
+// Confirm Password Reset Hook — exchanges a reset token for a new password
+export const useConfirmPasswordReset = () => {
+  return useMutation({
+    mutationFn: async (payload: PasswordResetConfirmPayload) => {
+      const { data } = await apiClient.post<PasswordResetResponse>(
+        AUTH_ENDPOINTS.PASSWORD_RESET_CONFIRM,
+        payload
+      );
+      return data;
+    },
   });
 };

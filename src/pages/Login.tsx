@@ -92,12 +92,12 @@ export const Login: React.FC = () => {
                 <label className="text-sm text-gray-300 font-medium">
                   Password
                 </label>
-                <a
-                  href="#"
+                <Link
+                  to="/forgot-password"
                   className="text-xs text-emerald-500 hover:text-emerald-400"
                 >
                   Forgot Password?
-                </a>
+                </Link>
               </div>
               <Input
                 isPassword

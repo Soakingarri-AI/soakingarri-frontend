@@ -1,43 +1,101 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Modal } from 'antd';
 import { MainLayout } from '../layouts/MainLayout';
 import { GlassCard } from '../components/ui/GlassCard';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, Trash2, MessageSquare } from 'lucide-react';
+import { useAskSessions, useDeleteAskSession } from '../hooks/useAsk';
+import type { AskSessionSummary } from '../api/types';
 
-// Reusable history card
-const HistoryCard = ({ 
-  title, 
-  time, 
-  snippet, 
-  tags, 
-  accentColor = 'border-l-transparent' 
-}: { 
-  title: string, 
-  time: string, 
-  snippet: string, 
-  tags?: string[], 
-  accentColor?: string 
-}) => (
-  <GlassCard className={`p-5 flex flex-col gap-3 hover:bg-white/5 transition-colors cursor-pointer border-l-2 ${accentColor}`}>
-    <div className="flex justify-between items-start">
-      <h3 className="text-white font-semibold truncate pr-4">{title}</h3>
-      <span className="text-xs text-gray-500 whitespace-nowrap">{time}</span>
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const groupSessions = (sessions: AskSessionSummary[]) => {
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  const groups: { label: string; sessions: AskSessionSummary[] }[] = [
+    { label: 'Today', sessions: [] },
+    { label: 'Yesterday', sessions: [] },
+    { label: 'Earlier', sessions: [] },
+  ];
+
+  for (const session of sessions) {
+    const updated = new Date(session.updated_at);
+    if (isSameDay(updated, now)) groups[0].sessions.push(session);
+    else if (isSameDay(updated, yesterday)) groups[1].sessions.push(session);
+    else groups[2].sessions.push(session);
+  }
+
+  return groups.filter((g) => g.sessions.length > 0);
+};
+
+interface HistoryCardProps {
+  session: AskSessionSummary;
+  timeLabel: string;
+  onOpen: () => void;
+  onDelete: () => void;
+}
+
+const HistoryCard: React.FC<HistoryCardProps> = ({ session, timeLabel, onOpen, onDelete }) => (
+  <GlassCard
+    onClick={onOpen}
+    className="p-5 flex flex-col gap-3 hover:bg-white/5 transition-colors cursor-pointer border-l-2 border-l-amber-500/60 group relative"
+  >
+    <div className="flex justify-between items-start gap-3">
+      <h3 className="text-white font-semibold truncate pr-4">{session.title || 'Untitled chat'}</h3>
+      <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">{timeLabel}</span>
     </div>
-    <p className="text-amber-500/80 text-xs line-clamp-2 leading-relaxed">
-      {snippet}
-    </p>
-    {tags && (
-      <div className="flex gap-2 mt-auto pt-2">
-        {tags.map((tag, i) => (
-          <span key={i} className="text-[10px] font-semibold tracking-wider text-gray-400 bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50">
-            {tag}
-          </span>
-        ))}
-      </div>
-    )}
+    <div className="flex items-center gap-1.5 text-amber-500/80 text-xs">
+      <MessageSquare className="w-3 h-3" />
+      <span>Ask session</span>
+    </div>
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onDelete();
+      }}
+      className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-400"
+      title="Delete chat"
+    >
+      <Trash2 className="w-3.5 h-3.5" />
+    </button>
   </GlassCard>
 );
 
 export const History: React.FC = () => {
+  const navigate = useNavigate();
+  const { data: sessions, isLoading, isError } = useAskSessions();
+  const deleteSession = useDeleteAskSession();
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!sessions) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return sessions;
+    return sessions.filter((s) => s.title?.toLowerCase().includes(q));
+  }, [sessions, search]);
+
+  const groups = useMemo(() => groupSessions(filtered), [filtered]);
+
+  const handleDelete = (session: AskSessionSummary) => {
+    Modal.confirm({
+      title: 'Delete this chat?',
+      content: `"${session.title || 'Untitled chat'}" and all its messages will be permanently removed.`,
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      onOk: () => deleteSession.mutate(session.id),
+    });
+  };
+
   return (
     <MainLayout>
       {/* Background - Starry space simulation */}
@@ -55,9 +113,11 @@ export const History: React.FC = () => {
         <div className="flex gap-4">
           <div className="relative">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search History" 
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search History"
               className="bg-white/5 border border-white/10 rounded-full py-1.5 pl-9 pr-4 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 transition-colors w-64"
             />
           </div>
@@ -70,82 +130,54 @@ export const History: React.FC = () => {
       {/* Scrollable Content */}
       <div className="relative z-10 flex-1 overflow-y-auto p-8 custom-scrollbar pb-24">
         <div className="max-w-4xl mx-auto">
-          
-          {/* Today Section */}
-          <div className="mb-10">
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-sm font-semibold text-gray-400">Today</span>
-              <div className="flex-1 h-px bg-white/5"></div>
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <HistoryCard 
-                title="Quantum Computing Foundations"
-                time="2:45 PM"
-                snippet="Can you explain the difference between a qubit and a classical bit in terms of superposition and..."
-                tags={['PHYSICS', 'ADVANCED']}
-                accentColor="border-l-indigo-500"
-              />
-              <HistoryCard 
-                title="Marketing Strategy: Q4 2024"
-                time="10:45 AM"
-                snippet="Analyze the current market trends for SaaS companies targeting Gen-Z users. Focus on visual..."
-                tags={['BUSINESS']}
-                accentColor="border-l-amber-500"
-              />
-            </div>
-          </div>
+          {isLoading && (
+            <p className="text-sm text-gray-400">Loading your chats…</p>
+          )}
 
-          {/* Yesterday Section */}
-          <div className="mb-10">
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-sm font-semibold text-gray-400">Yesterday</span>
-              <div className="flex-1 h-px bg-white/5"></div>
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <HistoryCard 
-                title="Typescript Refactoring"
-                time="Yesterday"
-                snippet="Help me refactor this complex nested interface to use generic types and mapped types for better..."
-                tags={['CODING']}
-              />
-              <HistoryCard 
-                title="Evening Creative Writing"
-                time="Yesterday"
-                snippet="Draft a short story opening about a clockmaker who discovers he can pause time, but only withi..."
-                tags={['CREATIVE']}
-                accentColor="border-l-emerald-500"
-              />
-            </div>
-          </div>
+          {isError && (
+            <p className="text-sm text-red-400">
+              Couldn't load your chat history. Please refresh the page.
+            </p>
+          )}
 
-          {/* Last Week Section */}
-          <div>
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-sm font-semibold text-gray-400">Last Week</span>
-              <div className="flex-1 h-px bg-white/5"></div>
+          {!isLoading && !isError && groups.length === 0 && (
+            <div className="flex flex-col items-center justify-center text-center gap-3 py-24">
+              <MessageSquare className="w-8 h-8 text-gray-600" />
+              <p className="text-gray-400">
+                {search ? 'No chats match your search.' : "You haven't asked anything yet."}
+              </p>
+              {!search && (
+                <button
+                  onClick={() => navigate('/chat')}
+                  className="text-sm text-emerald-500 hover:text-emerald-400 transition-colors"
+                >
+                  Start your first chat →
+                </button>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { title: 'Mental Health Bot Design', date: 'Sept 12, 2024', msgs: '142 messages' },
-                { title: 'Mental Health Bot Design', date: 'Sept 12, 2024', msgs: '142 messages' },
-                { title: 'Japanese Grammar Practi...', date: 'Sept 10, 2024', msgs: '50 messages' },
-                { title: 'Japanese Grammar Practi...', date: 'Sept 10, 2024', msgs: '58 messages' },
-                { title: 'CI/CD Pipeline Setup', date: 'Sept 9, 2024', msgs: '64 messages' },
-                { title: 'CI/CD Pipeline Setup', date: 'Sept 9, 2024', msgs: '80 messages' },
-                { title: 'Project Research', date: 'Sept 8, 2024', msgs: '89 messages' },
-                { title: 'Project Research', date: 'Sept 8, 2024', msgs: '88 messages' },
-              ].map((item, i) => (
-                <div key={i} className="glass-panel p-4 flex justify-between items-center rounded-xl hover:bg-white/5 cursor-pointer transition-colors border-l-2 border-l-transparent">
-                  <h4 className="text-sm font-medium text-white">{item.title}</h4>
-                  <div className="text-right">
-                    <p className="text-[10px] text-gray-400">{item.date}</p>
-                    <p className="text-[10px] text-gray-500">{item.msgs}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
 
+          {groups.map((group) => (
+            <div className="mb-10" key={group.label}>
+              <div className="flex items-center gap-4 mb-6">
+                <span className="text-sm font-semibold text-gray-400">{group.label}</span>
+                <div className="flex-1 h-px bg-white/5"></div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                {group.sessions.map((session) => (
+                  <HistoryCard
+                    key={session.id}
+                    session={session}
+                    timeLabel={
+                      group.label === 'Earlier' ? formatDate(session.updated_at) : formatTime(session.updated_at)
+                    }
+                    onOpen={() => navigate(`/chat/${session.id}`)}
+                    onDelete={() => handleDelete(session)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </MainLayout>

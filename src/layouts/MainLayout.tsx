@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { Modal } from "antd";
 import {
   LayoutGrid,
   MessageSquarePlus,
@@ -10,6 +11,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { useUser } from "../hooks/useAuth";
+import { useAskSessions, useDeleteAskSession } from "../hooks/useAsk";
 
 const NAV_PRIMARY = [
   { to: "/dashboard", icon: LayoutGrid, label: "Dashboard" },
@@ -18,22 +20,13 @@ const NAV_PRIMARY = [
   { to: "/saved", icon: Cloud, label: "Saved Files" },
 ];
 
-const RECENT = [
-  "Global Energy Transition Res...",
-  "Quantum Analysis",
-  "JAMB preparation Exam",
-  "Project Research",
-  "African History and Traditio...",
-  "World War 1 Story behind",
-  "History of international rela...",
-  "Global Economic analysis",
-];
-
 export const MainLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const navigate = useNavigate();
   const { data: user } = useUser();
+  const { data: sessions } = useAskSessions();
+  const deleteSession = useDeleteAskSession();
 
   const initials = user?.full_name
     ? user.full_name
@@ -118,17 +111,35 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({
               Recent
             </span>
           </div>
-          {RECENT.map((title, i) => (
+          {sessions?.length === 0 && (
+            <p className="px-2 py-1.5 text-xs" style={{ color: "#5f5f5f" }}>
+              No chats yet
+            </p>
+          )}
+          {sessions?.slice(0, 8).map((session) => (
             <div
-              key={i}
+              key={session.id}
+              onClick={() => navigate(`/chat/${session.id}`)}
               className="flex items-center justify-between group px-2 py-1.5 rounded-md cursor-pointer text-xs transition-colors hover:bg-white/5"
               style={{ color: "#969696" }}
             >
-              <span className="truncate pr-2">{title}</span>
-              <MoreVertical
-                className="w-3.5 h-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ color: "#969696" }}
-              />
+              <span className="truncate pr-2">{session.title}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  Modal.confirm({
+                    title: "Delete this chat?",
+                    content: `"${session.title}" and all its messages will be permanently removed.`,
+                    okText: "Delete",
+                    okButtonProps: { danger: true },
+                    onOk: () => deleteSession.mutate(session.id),
+                  });
+                }}
+                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+              >
+                <MoreVertical className="w-3.5 h-3.5" style={{ color: "#969696" }} />
+              </button>
             </div>
           ))}
         </div>

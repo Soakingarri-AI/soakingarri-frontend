@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "../layouts/MainLayout";
 import {
   Users,
@@ -9,8 +10,10 @@ import {
   Wand2,
   LineChart,
   Code,
+  Loader2,
 } from "lucide-react";
 import { useUser } from "../hooks/useAuth";
+import { useAsk } from "../hooks/useAsk";
 
 /* ── Suggestion card data ───────────────────────────────────────── */
 const SUGGESTIONS = [
@@ -56,6 +59,27 @@ const PILLS = [
 export const Dashboard: React.FC = () => {
   const { data: user } = useUser();
   const firstName = user?.full_name?.split(" ")[0] ?? "there";
+  const navigate = useNavigate();
+  const askMutation = useAsk();
+  const [prompt, setPrompt] = useState("");
+
+  const submitPrompt = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || askMutation.isPending) return;
+    askMutation.mutate(
+      { prompt: trimmed },
+      {
+        onSuccess: (data) => navigate(`/chat/${data.session_id}`),
+      }
+    );
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submitPrompt(prompt);
+    }
+  };
 
   return (
     <MainLayout>
@@ -122,20 +146,24 @@ export const Dashboard: React.FC = () => {
                 backdropFilter: "blur(18px)",
               }}
             >
-              {/* Placeholder row */}
+              {/* Input row */}
               <div className="px-5 pt-4 pb-2">
-                <p
-                  className="text-sm"
-                  style={{ color: "rgba(219,252,255,0.5)" }}
-                >
-                  Ask SOAKINGARRI AI
-                </p>
+                <input
+                  type="text"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={askMutation.isPending}
+                  placeholder="Ask SOAKINGARRI AI"
+                  className="w-full bg-transparent border-none text-sm text-white placeholder:text-[rgba(219,252,255,0.5)] focus:outline-none disabled:opacity-60"
+                />
               </div>
 
               {/* Toolbar row */}
               <div className="flex items-center gap-3 px-4 pb-4">
                 {/* + button */}
                 <button
+                  type="button"
                   className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:brightness-110"
                   style={{
                     background: "rgba(219,252,255,0.15)",
@@ -150,6 +178,7 @@ export const Dashboard: React.FC = () => {
 
                 {/* Mic */}
                 <button
+                  type="button"
                   className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
                   style={{
                     background: "rgba(255,255,255,0.12)",
@@ -161,17 +190,30 @@ export const Dashboard: React.FC = () => {
 
                 {/* Send */}
                 <button
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:brightness-110"
+                  type="button"
+                  onClick={() => submitPrompt(prompt)}
+                  disabled={!prompt.trim() || askMutation.isPending}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
                     background: "#F59E0B",
                     color: "#000",
                     boxShadow: "0 0 16px rgba(245,158,11,0.5)",
                   }}
                 >
-                  <Send className="w-5 h-5" />
+                  {askMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
+
+            {askMutation.isError && (
+              <p className="text-sm text-red-400 -mt-3 mb-5">
+                Couldn't reach SoakinGarri AI. Please try again.
+              </p>
+            )}
 
             {/* Action pills — 3 per row, matching screenshot */}
             <div className="w-full max-w-2xl grid grid-cols-3 gap-3 mb-10">
@@ -201,11 +243,14 @@ export const Dashboard: React.FC = () => {
                 {SUGGESTIONS.map((s, i) => (
                   <div
                     key={i}
+                    onClick={() => submitPrompt(`${s.title}. ${s.desc}`)}
                     className="p-4 rounded-2xl cursor-pointer group transition-all hover:brightness-110"
                     style={{
                       background: "rgba(10,15,28,0.72)",
                       border: "1px solid rgba(255,255,255,0.07)",
                       backdropFilter: "blur(14px)",
+                      opacity: askMutation.isPending ? 0.6 : 1,
+                      pointerEvents: askMutation.isPending ? "none" : "auto",
                     }}
                   >
                     {/* Tag + icon */}
