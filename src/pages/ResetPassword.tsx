@@ -5,6 +5,7 @@ import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { ShieldCheck, KeyRound, LinkIcon } from "lucide-react";
 import { useConfirmPasswordReset } from "../hooks/useAuth";
+import { hasFieldError, getFieldMessage, getStatus } from "../api/errors";
 
 export const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -49,16 +50,13 @@ export const ResetPassword: React.FC = () => {
   // The API answers 422 both for a spent/expired token and for a password that
   // fails its rules, so read the field the complaint points at rather than
   // blaming the link every time.
-  const errorResponse = (confirmMutation.error as any)?.response;
-  const detail = errorResponse?.data?.detail;
-  const firstIssue = Array.isArray(detail) ? detail[0] : undefined;
-  const isPasswordIssue = Array.isArray(firstIssue?.loc)
-    ? firstIssue.loc.includes("new_password")
-    : false;
+  const isPasswordIssue = hasFieldError(confirmMutation.error, "new_password");
+  const passwordMessage = getFieldMessage(confirmMutation.error, "new_password");
+  const status = getStatus(confirmMutation.error);
 
   const errorMessage = isPasswordIssue
-    ? (firstIssue?.msg as string) ?? "That password doesn't meet the requirements."
-    : errorResponse?.status === 422
+    ? passwordMessage ?? "That password doesn't meet the requirements."
+    : status === 400 || status === 404 || status === 422
       ? "This reset link is invalid or has expired."
       : "Something went wrong. Please try again.";
 
@@ -140,11 +138,13 @@ export const ResetPassword: React.FC = () => {
             label="New Password"
             isPassword
             placeholder="••••••••"
+            autoComplete="new-password"
+            maxLength={128}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
           <p className="text-xs text-gray-500">
-            Minimum 12 characters with one special symbol.
+            At least 8 characters.
           </p>
         </div>
 

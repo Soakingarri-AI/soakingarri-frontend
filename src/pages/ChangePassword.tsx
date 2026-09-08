@@ -6,6 +6,7 @@ import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { KeyRound, ShieldCheck, ArrowLeft } from "lucide-react";
 import { useChangePassword } from "../hooks/useAuth";
+import { getFieldMessage, getStatus } from "../api/errors";
 
 // Changing a password revokes every session on the server, this one included,
 // so a success here always ends in a trip back to the login screen.
@@ -34,21 +35,13 @@ export const ChangePassword: React.FC = () => {
     );
   };
 
-  const response = (changeMutation.error as any)?.response;
-  // A 422 body carries the field-level reason; prefer the server's own wording
-  // over a guess, since it's authoritative about the password policy.
-  const validationMessage: string | undefined = Array.isArray(response?.data?.detail)
-    ? response.data.detail[0]?.msg
-    : typeof response?.data?.detail === "string"
-      ? response.data.detail
-      : undefined;
-
+  // A 422 names the field that failed; the server is authoritative about the
+  // password policy, so prefer its reason over a guess.
   const errorMessage =
-    response?.status === 422 && validationMessage
-      ? validationMessage
-      : response?.status === 422
-        ? "That password doesn't meet the requirements."
-        : "Couldn't change your password. Check your current password and try again.";
+    getFieldMessage(changeMutation.error, "new_password") ??
+    (getStatus(changeMutation.error) === 422
+      ? "That password doesn't meet the requirements."
+      : "Couldn't change your password. Check your current password and try again.");
 
   /* ── Done — every session was revoked, so log back in ─────────── */
   if (done) {
@@ -145,7 +138,7 @@ export const ChangePassword: React.FC = () => {
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
                 <p className="text-xs text-gray-500">
-                  Between 8 and 128 characters.
+                  At least 8 characters.
                 </p>
               </div>
 

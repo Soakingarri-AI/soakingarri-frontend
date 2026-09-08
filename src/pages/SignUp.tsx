@@ -5,6 +5,7 @@ import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { SocialButton } from "../components/ui/SocialButton";
 import { useRegister } from "../hooks/useAuth";
+import { getFieldMessage, getStatus } from "../api/errors";
 
 export const SignUp: React.FC = () => {
   const [fullName, setFullName] = useState("");
@@ -32,13 +33,15 @@ export const SignUp: React.FC = () => {
     );
   };
 
-  const status = (registerMutation.error as any)?.response?.status;
+  const status = getStatus(registerMutation.error);
   const registerError =
     status === 409
       ? "That email is already registered. Try logging in instead."
-      : status === 422
-        ? "Please check your details — the password may be too weak."
-        : "Failed to register. Please try again.";
+      : getFieldMessage(registerMutation.error, "password") ??
+        getFieldMessage(registerMutation.error, "email") ??
+        (status === 422
+          ? "Please check your details and try again."
+          : "Failed to register. Please try again.");
 
   return (
     <AuthLayout>
@@ -72,11 +75,13 @@ export const SignUp: React.FC = () => {
             label="Password"
             isPassword
             placeholder="••••••••"
+            autoComplete="new-password"
+            maxLength={128}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <p className="text-xs text-gray-500">
-            Minimum 12 characters with one special symbol.
+            At least 8 characters.
           </p>
         </div>
 
