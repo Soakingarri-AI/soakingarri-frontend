@@ -6,7 +6,7 @@ import { SocialButton } from "../components/ui/SocialButton";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { Checkbox } from "antd";
 import { Lock } from "lucide-react";
-import { useLogin } from "../hooks/useAuth";
+import { useLogin, isEmailNotVerifiedError } from "../hooks/useAuth";
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -27,6 +27,12 @@ export const Login: React.FC = () => {
           setShowLoader(true);
         },
         onError: (error) => {
+          // An unconfirmed address is refused with a 403 — that's a solvable
+          // state, not a bad password, so send them to resend the link.
+          if (isEmailNotVerifiedError(error)) {
+            navigate(`/check-email?email=${encodeURIComponent(email)}`);
+            return;
+          }
           console.error("Login failed:", error);
         },
       },

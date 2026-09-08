@@ -1,15 +1,40 @@
 export interface User {
   id: string;
   email: string;
-  full_name: string;
+  full_name: string | null;
   is_active: boolean;
+  is_verified: boolean;
   created_at: string;
 }
 
+// What /auth/refresh returns: a bare rotated pair.
 export interface AuthTokens {
   access_token: string;
   refresh_token: string;
   token_type: string;
+}
+
+// What /auth/login and /auth/verify-email return — the pair plus the profile it
+// belongs to, so post-auth screens can render without a follow-up /auth/me.
+export interface AuthSession extends AuthTokens {
+  user: User;
+}
+
+export interface VerifyEmailPayload {
+  token: string;
+}
+
+export interface ResendVerificationPayload {
+  email: string;
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+}
+
+export interface MessageResponse {
+  message: string;
 }
 
 export interface PasswordResetRequestPayload {

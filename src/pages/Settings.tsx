@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
-import { 
-  Search, Bell, Shield, Sliders, Eye, BellRing, 
-  CreditCard, HeadphonesIcon, Users, Globe, Info, ChevronDown, Save
+import {
+  Search, Bell, Shield, Sliders, Eye, BellRing,
+  CreditCard, HeadphonesIcon, Users, Globe, Info, ChevronDown, Save, KeyRound
 } from 'lucide-react';
 
 // Custom sleek toggle switch
@@ -21,6 +22,8 @@ const Toggle = ({ defaultChecked = true }) => {
 };
 
 export const Settings: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <MainLayout>
       {/* Background - Starry space simulation */}
@@ -82,7 +85,14 @@ export const Settings: React.FC = () => {
                   <Toggle />
                 </div>
               </div>
-              <div className="mt-auto pt-4 flex justify-end">
+              <div className="mt-auto pt-4 flex justify-end gap-2">
+                <button
+                  onClick={() => navigate("/change-password")}
+                  className="bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10 px-4 py-1.5 rounded text-xs font-semibold transition-colors flex items-center gap-1.5"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  Change Password
+                </button>
                 <button className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-4 py-1.5 rounded text-xs font-semibold transition-colors">
                   More Privacy Settings
                 </button>

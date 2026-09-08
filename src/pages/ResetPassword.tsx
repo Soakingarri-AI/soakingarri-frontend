@@ -1,20 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
-import { ShieldCheck, KeyRound } from "lucide-react";
+import { ShieldCheck, KeyRound, LinkIcon } from "lucide-react";
 import { useConfirmPasswordReset } from "../hooks/useAuth";
 
 export const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [token, setToken] = useState(searchParams.get("token") ?? "");
+  // The token rides in on the emailed link and is never shown or edited — it's
+  // a credential, not something a person should be handling by hand. Grab it
+  // once on mount so the URL can be scrubbed without losing it.
+  const [token] = useState(() => searchParams.get("token") ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [mismatch, setMismatch] = useState(false);
   const [done, setDone] = useState(false);
   const navigate = useNavigate();
   const confirmMutation = useConfirmPasswordReset();
+
+  // Strip the token from the address bar as soon as it's captured, so it can't
+  // be read off the screen, land in browser history, or leak through a
+  // screenshot or a shared link.
+  useEffect(() => {
+    if (searchParams.get("token")) {
+      navigate("/reset-password", { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +46,21 @@ export const ResetPassword: React.FC = () => {
     );
   };
 
-  const isValidationError =
-    confirmMutation.isError &&
-    (confirmMutation.error as any)?.response?.status === 422;
+  // The API answers 422 both for a spent/expired token and for a password that
+  // fails its rules, so read the field the complaint points at rather than
+  // blaming the link every time.
+  const errorResponse = (confirmMutation.error as any)?.response;
+  const detail = errorResponse?.data?.detail;
+  const firstIssue = Array.isArray(detail) ? detail[0] : undefined;
+  const isPasswordIssue = Array.isArray(firstIssue?.loc)
+    ? firstIssue.loc.includes("new_password")
+    : false;
+
+  const errorMessage = isPasswordIssue
+    ? (firstIssue?.msg as string) ?? "That password doesn't meet the requirements."
+    : errorResponse?.status === 422
+      ? "This reset link is invalid or has expired."
+      : "Something went wrong. Please try again.";
 
   if (done) {
     return (
@@ -61,6 +85,39 @@ export const ResetPassword: React.FC = () => {
     );
   }
 
+  /* ── Opened without a token — the link is missing or was mangled ── */
+  if (!token) {
+    return (
+      <AuthLayout>
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
+              <LinkIcon className="w-6 h-6 text-red-500" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
+            This link isn't valid
+          </h2>
+          <p className="text-gray-400 mb-8">
+            Open the reset link straight from your email, or request a new one —
+            they expire after a while and can only be used once.
+          </p>
+          <Button className="w-full" onClick={() => navigate("/forgot-password")}>
+            Request a new link
+          </Button>
+          <p className="mt-8 text-center text-sm text-gray-400">
+            <Link
+              to="/login"
+              className="text-emerald-500 hover:text-emerald-400 transition-colors"
+            >
+              Back to Login
+            </Link>
+          </p>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout>
       <div className="text-center mb-8">
@@ -73,18 +130,11 @@ export const ResetPassword: React.FC = () => {
           Reset your password
         </h2>
         <p className="text-gray-400">
-          Enter the reset token from your email and choose a new password.
+          Choose a new password for your account.
         </p>
       </div>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <Input
-          label="Reset Token"
-          placeholder="Paste the token from your email"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-        />
-
         <div className="space-y-2">
           <Input
             label="New Password"
@@ -112,12 +162,12 @@ export const ResetPassword: React.FC = () => {
 
         {confirmMutation.isError && (
           <div className="text-red-500 text-sm">
-            {isValidationError
-              ? "This reset link is invalid or has expired."
-              : "Something went wrong. Please try again."}{" "}
-            <Link to="/forgot-password" className="text-emerald-500 hover:text-emerald-400">
-              Request a new link
-            </Link>
+            {errorMessage}{" "}
+            {!isPasswordIssue && (
+              <Link to="/forgot-password" className="text-emerald-500 hover:text-emerald-400">
+                Request a new link
+              </Link>
+            )}
           </div>
         )}
 

@@ -49,7 +49,7 @@ const SUGGESTIONS = [
 
 const PILLS = [
   "Factorizer",
-  "Memer",
+  "Meme",
   "Finance",
   "InfiniteParts",
   "ExamFlow",

@@ -21,7 +21,9 @@ export const SignUp: React.FC = () => {
       { email, password, full_name: fullName },
       {
         onSuccess: () => {
-          navigate("/login");
+          // The account exists but can't sign in until the emailed link is
+          // used, so point them at their inbox rather than the login form.
+          navigate(`/check-email?email=${encodeURIComponent(email)}`);
         },
         onError: (error) => {
           console.error("Registration failed:", error);
@@ -29,6 +31,14 @@ export const SignUp: React.FC = () => {
       },
     );
   };
+
+  const status = (registerMutation.error as any)?.response?.status;
+  const registerError =
+    status === 409
+      ? "That email is already registered. Try logging in instead."
+      : status === 422
+        ? "Please check your details — the password may be too weak."
+        : "Failed to register. Please try again.";
 
   return (
     <AuthLayout>
@@ -71,9 +81,7 @@ export const SignUp: React.FC = () => {
         </div>
 
         {registerMutation.isError && (
-          <div className="text-red-500 text-sm">
-            Failed to register. Please try again.
-          </div>
+          <div className="text-red-500 text-sm">{registerError}</div>
         )}
 
         <Button
