@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
-import { MailCheck, RefreshCw } from "lucide-react";
+import { MailCheck, RefreshCw, KeyRound } from "lucide-react";
 import { useResendVerification } from "../hooks/useAuth";
 
 // Shown after signing up, and whenever a login is refused because the address
@@ -14,6 +14,7 @@ export const CheckEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [resent, setResent] = useState(false);
+  const navigate = useNavigate();
   const resendMutation = useResendVerification();
 
   const handleResend = (e: React.FormEvent) => {
@@ -99,6 +100,31 @@ export const CheckEmail: React.FC = () => {
           </Button>
         </form>
       )}
+
+      {/* Second route to the same outcome. Completing a password reset also
+          confirms the address — receiving that link proves control of the
+          mailbox — so it unblocks anyone whose verification mail never lands,
+          which matters most for accounts created before verification existed. */}
+      <div className="mt-8 pt-6 border-t border-gray-800">
+        <p className="text-sm text-gray-400 text-center mb-4">
+          Still nothing after a few minutes? Setting a new password also
+          confirms your email and gets you in.
+        </p>
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() =>
+            navigate(
+              email
+                ? `/forgot-password?email=${encodeURIComponent(email)}`
+                : "/forgot-password"
+            )
+          }
+        >
+          <KeyRound className="w-4 h-4" />
+          Confirm by resetting my password
+        </Button>
+      </div>
 
       <p className="mt-8 text-center text-sm text-gray-400">
         <Link

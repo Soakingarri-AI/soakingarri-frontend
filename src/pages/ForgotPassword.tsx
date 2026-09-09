@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
@@ -10,7 +10,10 @@ import { useRequestPasswordReset } from "../hooks/useAuth";
 // shows the same confirmation regardless of outcome — except real validation
 // errors (e.g. malformed email), which are safe to surface.
 export const ForgotPassword: React.FC = () => {
-  const [email, setEmail] = useState("");
+  const [searchParams] = useSearchParams();
+  // Carried over when someone arrives from the verification screen, so they
+  // don't retype an address they just entered.
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [submitted, setSubmitted] = useState(false);
   const [devToken, setDevToken] = useState<string | null>(null);
   const navigate = useNavigate();
