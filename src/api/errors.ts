@@ -46,3 +46,15 @@ export const getFieldMessage = (error: unknown, field: string): string | undefin
   }
   return issue.msg;
 };
+
+/**
+ * The server's own explanation for a failed request, for endpoints where it is
+ * the most useful thing to show (e.g. "file type not allowed"). FastAPI sends
+ * `detail` as a string for HTTPExceptions and as an issue list for 422s.
+ */
+export const getErrorMessage = (error: unknown, fallback: string): string => {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === "string" && detail) return detail;
+  const first = getIssues(error)[0];
+  return first?.msg || fallback;
+};

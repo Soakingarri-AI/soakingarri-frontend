@@ -18,3 +18,10 @@ export const ASK_ENDPOINTS = {
   SESSIONS: '/api/v1/ask/sessions',
   SESSION: (sessionId: string) => `/api/v1/ask/sessions/${sessionId}`,
 };
+
+export const UPLOAD_ENDPOINTS = {
+  LIMITS: '/api/v1/uploads/limits',
+  UPLOADS: '/api/v1/uploads',
+  UPLOAD: (attachmentId: string) => `/api/v1/uploads/${attachmentId}`,
+  CONTENT: (attachmentId: string) => `/api/v1/uploads/${attachmentId}/content`,
+};

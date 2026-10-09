@@ -1,12 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Modal } from 'antd';
+import { Modal, message } from 'antd';
 import { MainLayout } from '../layouts/MainLayout';
 import { Button } from '../components/ui/Button';
 import { SourceCitations } from '../components/chat/SourceCitations';
 import { LearningModeSelect } from '../components/chat/LearningModeSelect';
+import { MessageAttachments, PendingAttachmentChip } from '../components/chat/Attachments';
+import {
+  attachmentsFromMeta,
+  formatBytes,
+  isImage,
+  type AttachmentRef,
+  type PendingAttachment,
+} from '../components/chat/attachmentUtils';
 import { useAsk, useAskSession, useDeleteAskSession } from '../hooks/useAsk';
+import { useDeleteUpload, useUploadFile, useUploadLimits } from '../hooks/useUploads';
 import { useUser } from '../hooks/useAuth';
+import { getErrorMessage } from '../api/errors';
 import type { AskSource, LearningMode } from '../api/types';
 import { Plus, Mic, Send, Trash2, BookOpen, AlertTriangle } from 'lucide-react';
 
@@ -15,6 +25,7 @@ interface ChatMessageVM {
   role: 'user' | 'assistant';
   content: string;
   sources?: AskSource[];
+  attachments?: AttachmentRef[];
   isError?: boolean;
 }
 
@@ -26,11 +37,24 @@ export const Chat: React.FC = () => {
   const sessionQuery = useAskSession(sessionId);
   const askMutation = useAsk();
   const deleteMutation = useDeleteAskSession();
+  const limitsQuery = useUploadLimits();
+  const uploadMutation = useUploadFile();
+  const deleteUploadMutation = useDeleteUpload();
 
   const [messages, setMessages] = useState<ChatMessageVM[]>([]);
   const [input, setInput] = useState('');
   const [learningMode, setLearningMode] = useState<LearningMode>('normal');
+  const [pending, setPending] = useState<PendingAttachment[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Free preview URLs for anything still in the composer when the page goes away.
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+  useEffect(
+    () => () => pendingRef.current.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl)),
+    []
+  );
 
   // Rebuild the message list whenever we switch sessions or the session's history loads.
   useEffect(() => {
@@ -45,6 +69,7 @@ export const Chat: React.FC = () => {
           role: m.role === 'user' ? 'user' : 'assistant',
           content: m.content,
           sources: (m.meta?.sources as AskSource[] | undefined) ?? undefined,
+          attachments: attachmentsFromMeta(m.meta),
         }))
       );
       setLearningMode(sessionQuery.data.learning_mode || 'normal');
@@ -55,20 +80,113 @@ export const Chat: React.FC = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, askMutation.isPending]);
 
+  const updatePending = (localId: string, patch: Partial<PendingAttachment>) =>
+    setPending((prev) => prev.map((p) => (p.localId === localId ? { ...p, ...patch } : p)));
+
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    // Reset so picking the same file again still fires onChange.
+    e.target.value = '';
+    if (files.length === 0) return;
+
+    // Client-side checks are a courtesy; the server re-checks everything,
+    // including the real file type from its bytes.
+    const limits = limitsQuery.data;
+    if (limits) {
+      if (pending.length + files.length > limits.max_files_per_message) {
+        message.error(`You can attach up to ${limits.max_files_per_message} files per message.`);
+        return;
+      }
+      const tooBig = files.find((f) => f.size > limits.max_bytes);
+      if (tooBig) {
+        message.error(`${tooBig.name} is larger than the ${formatBytes(limits.max_bytes)} limit.`);
+        return;
+      }
+      const remaining = limits.quota_bytes - limits.used_bytes;
+      if (files.reduce((sum, f) => sum + f.size, 0) > remaining) {
+        message.error(`Not enough storage left: ${formatBytes(Math.max(remaining, 0))} remaining.`);
+        return;
+      }
+    }
+
+    const items: PendingAttachment[] = files.map((file, i) => ({
+      localId: `local-file-${Date.now()}-${i}`,
+      file,
+      previewUrl: isImage(file.type) ? URL.createObjectURL(file) : undefined,
+      status: 'uploading',
+      progress: 0,
+    }));
+    setPending((prev) => [...prev, ...items]);
+
+    items.forEach((item) => {
+      uploadMutation
+        .mutateAsync({
+          file: item.file,
+          onProgress: (progress) => updatePending(item.localId, { progress }),
+        })
+        .then((data) =>
+          updatePending(item.localId, {
+            status: 'ready',
+            progress: 100,
+            attachment: {
+              id: data.id,
+              filename: data.filename,
+              content_type: data.content_type,
+              kind: data.kind,
+            },
+          })
+        )
+        .catch((err) =>
+          updatePending(item.localId, {
+            status: 'error',
+            error: getErrorMessage(err, 'Upload failed'),
+          })
+        );
+    });
+  };
+
+  const handleRemovePending = (item: PendingAttachment) => {
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    setPending((prev) => prev.filter((p) => p.localId !== item.localId));
+    // Already on the server but never sent: delete it so it doesn't eat quota.
+    if (item.attachment) deleteUploadMutation.mutate(item.attachment.id);
+  };
+
+  const isUploading = pending.some((p) => p.status === 'uploading');
+
   const handleSend = () => {
     const prompt = input.trim();
-    if (!prompt || askMutation.isPending) return;
+    if (!prompt || askMutation.isPending || isUploading) return;
+
+    // Failed uploads can't be sent; drop them along with their previews.
+    const sent = pending.filter((p) => p.status === 'ready' && p.attachment);
+    pending
+      .filter((p) => !sent.includes(p))
+      .forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+    const attachments = sent.map((p) => p.attachment!);
 
     setMessages((prev) => [
       ...prev,
-      { id: `local-user-${Date.now()}`, role: 'user', content: prompt },
+      {
+        id: `local-user-${Date.now()}`,
+        role: 'user',
+        content: prompt,
+        attachments: attachments.length ? attachments : undefined,
+      },
     ]);
     setInput('');
+    setPending([]);
 
     askMutation.mutate(
-      { prompt, session_id: sessionId, learning_mode: learningMode },
+      {
+        prompt,
+        session_id: sessionId,
+        learning_mode: learningMode,
+        ...(attachments.length ? { attachment_ids: attachments.map((a) => a.id) } : {}),
+      },
       {
         onSuccess: (data) => {
+          sent.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
           setMessages((prev) => [
             ...prev,
             {
@@ -84,6 +202,8 @@ export const Chat: React.FC = () => {
           }
         },
         onError: () => {
+          // The files are still uploaded, so put them back for a retry to reuse.
+          setPending((prev) => [...sent, ...prev]);
           setMessages((prev) => [
             ...prev,
             {
@@ -201,6 +321,7 @@ export const Chat: React.FC = () => {
               msg.role === 'user' ? (
                 <div key={msg.id} className="flex justify-end gap-4">
                   <div className="bg-amber-500 text-black px-6 py-4 rounded-2xl rounded-tr-sm max-w-2xl font-medium shadow-lg whitespace-pre-wrap">
+                    {msg.attachments && <MessageAttachments attachments={msg.attachments} />}
                     {msg.content}
                   </div>
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-700 shrink-0 flex items-center justify-center text-xs font-bold text-black" style={{ background: '#F59E0B' }}>
@@ -242,10 +363,34 @@ export const Chat: React.FC = () => {
         <div className="w-full max-w-3xl mx-auto glass-panel rounded-2xl p-2 flex flex-col gap-4 shadow-2xl shadow-black/50 border-white/10 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/0 pointer-events-none"></div>
 
+          {pending.length > 0 && (
+            <div className="relative flex flex-wrap gap-2 px-2 pt-2">
+              {pending.map((item) => (
+                <PendingAttachmentChip
+                  key={item.localId}
+                  item={item}
+                  onRemove={() => handleRemovePending(item)}
+                />
+              ))}
+            </div>
+          )}
+
           <div className="relative flex items-center px-2 py-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={limitsQuery.data?.accepted_types.join(',')}
+              onChange={handleFilesSelected}
+              className="hidden"
+            />
             <button
               type="button"
-              className="w-10 h-10 rounded-xl bg-teal-100/10 hover:bg-teal-100/20 flex items-center justify-center text-teal-300 transition-colors shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={askMutation.isPending}
+              title="Attach files"
+              aria-label="Attach files"
+              className="w-10 h-10 rounded-xl bg-teal-100/10 hover:bg-teal-100/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-teal-300 transition-colors shrink-0"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -270,7 +415,8 @@ export const Chat: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSend}
-                disabled={!input.trim() || askMutation.isPending}
+                disabled={!input.trim() || askMutation.isPending || isUploading}
+                title={isUploading ? 'Waiting for uploads to finish' : undefined}
                 className="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-black transition-colors shadow-[0_0_15px_rgba(245,158,11,0.4)]"
               >
                 <Send className="w-5 h-5 ml-1" />
