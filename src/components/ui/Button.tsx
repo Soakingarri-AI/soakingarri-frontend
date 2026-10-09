@@ -4,7 +4,7 @@ import { Button as AntdButton } from 'antd';
 type AntdButtonProps = React.ComponentProps<typeof AntdButton>;
 
 interface CustomButtonProps extends Omit<AntdButtonProps, 'variant'> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gold';
   glow?: boolean;
 }
 
@@ -21,7 +21,9 @@ export const Button: React.FC<CustomButtonProps> = ({
     primary: "bg-emerald-500 hover:bg-emerald-400 text-white border-none",
     secondary: "bg-white hover:bg-gray-100 text-gray-900 border-none",
     outline: "bg-transparent border border-gray-600 hover:border-gray-400 text-white",
-    ghost: "bg-transparent hover:bg-white/10 text-white border-none"
+    ghost: "bg-transparent hover:bg-white/10 text-white border-none",
+    // Brand call-to-action; styled in index.css because antd outranks utilities
+    gold: "btn-gold"
   };
 
   const glowClass = glow && variant === 'primary' ? "glow-button" : "";

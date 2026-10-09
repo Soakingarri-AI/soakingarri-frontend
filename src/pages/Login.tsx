@@ -1,16 +1,21 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthLayout, AuthDivider } from "../layouts/AuthLayout";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { SocialButton } from "../components/ui/SocialButton";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { Checkbox } from "antd";
-import { Lock } from "lucide-react";
+import { Mail } from "lucide-react";
 import { useLogin, isEmailNotVerifiedError } from "../hooks/useAuth";
+import { getErrorMessage, getStatus } from "../api/errors";
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // The loader covers the whole attempt: it goes up on submit and only comes
+  // down on failure. On success the dashboard replaces it directly, so the
+  // form never flashes back in between.
   const [showLoader, setShowLoader] = useState(false);
   const navigate = useNavigate();
   const loginMutation = useLogin();
@@ -19,13 +24,10 @@ export const Login: React.FC = () => {
     e.preventDefault();
     if (!email || !password) return;
 
+    setShowLoader(true);
     loginMutation.mutate(
       { email, password },
       {
-        onSuccess: () => {
-          // Show the animated loading screen, then navigate
-          setShowLoader(true);
-        },
         onError: (error) => {
           // An unconfirmed address is refused with a 403 — that's a solvable
           // state, not a bad password, so send them to resend the link.
@@ -33,137 +35,100 @@ export const Login: React.FC = () => {
             navigate(`/check-email?email=${encodeURIComponent(email)}`);
             return;
           }
+          setShowLoader(false);
           console.error("Login failed:", error);
         },
       },
     );
   };
 
+  const status = getStatus(loginMutation.error);
+  const loginError =
+    status === 401
+      ? "Incorrect email or password."
+      : status === undefined
+        ? "Can't reach the server. Check your connection and try again."
+        : getErrorMessage(loginMutation.error, "Something went wrong. Please try again.");
+
   return (
     <>
-      {/* Loading screen — mounts on top of everything after login */}
-      {showLoader && <LoadingScreen onDone={() => navigate("/dashboard")} />}
-      <div className="min-h-screen bg-darker flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Decorative background effects */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-1/4 left-1/3 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.6)] opacity-40"></div>
-          <div className="absolute top-1/2 left-2/3 w-1 h-1 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)] opacity-50"></div>
-          <div className="absolute top-3/4 left-1/4 w-2 h-2 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)] opacity-30"></div>
-        </div>
+      {showLoader && (
+        <LoadingScreen
+          ready={loginMutation.isSuccess}
+          onDone={() => navigate("/dashboard", { replace: true })}
+        />
+      )}
 
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-        <div className="w-full max-w-md relative z-10">
-          <div className="flex justify-center mb-6">
-            <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
-              <Lock className="w-6 h-6 text-gray-300" />
-            </div>
-          </div>
-
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-              Welcome Back
-            </h2>
-            <p className="text-gray-400">
-              Precision intelligence awaits. Log in to continue.
-            </p>
-          </div>
-
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="name@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              prefix={
-                <svg
-                  className="w-4 h-4 text-gray-500 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-              }
-            />
-
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <label className="text-sm text-gray-300 font-medium">
-                  Password
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs text-emerald-500 hover:text-emerald-400"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-              <Input
-                isPassword
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            {loginMutation.isError && (
-              <div className="text-red-500 text-sm">
-                Invalid credentials or server error.
-              </div>
-            )}
-
-            <div className="flex items-center pt-1 pb-3">
-              <Checkbox className="text-gray-400 text-sm">
-                Remember this session
-              </Checkbox>
-            </div>
-
-            <Button
-              className="w-full text-lg h-12"
-              glow
-              htmlType="submit"
-              loading={loginMutation.isPending}
-            >
-              Log In <span className="ml-2">→</span>
-            </Button>
-          </form>
-
-          <div className="mt-8">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-700"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#020617] px-4 text-gray-500 tracking-wider">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-4">
-              <SocialButton provider="google" />
-              <SocialButton provider="apple" />
-            </div>
-          </div>
-
-          <p className="mt-8 text-center text-sm text-gray-400">
-            Don't have an account?{" "}
-            <Link
-              to="/signup"
-              className="text-emerald-500 hover:text-emerald-400 transition-colors"
-            >
-              Sign up
-            </Link>
+      <AuthLayout>
+        <div className="text-center mb-7 short:mb-5">
+          <h2 className="text-3xl short:text-2xl font-bold text-white mb-1.5 tracking-tight">
+            Welcome back
+          </h2>
+          <p className="text-white/55">
+            Pick up where you left off on your learning journey.
           </p>
         </div>
-      </div>
+
+        <form className="space-y-4 short:space-y-3" onSubmit={handleSubmit}>
+          <Input
+            label="Email Address"
+            type="email"
+            autoComplete="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            prefix={<Mail className="w-4 h-4 text-white/40 mr-2" />}
+          />
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <label className="text-sm text-gray-300 font-medium">Password</label>
+              <Link
+                to="/forgot-password"
+                className="text-xs text-gold hover:text-gold-light transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <Input
+              isPassword
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {loginMutation.isError && !showLoader && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+              {loginError}
+            </div>
+          )}
+
+          <div className="flex items-center">
+            <Checkbox className="text-white/60 text-sm">Remember this session</Checkbox>
+          </div>
+
+          <Button variant="gold" className="w-full text-base h-12 short:h-11" htmlType="submit">
+            Log In <span className="ml-2">→</span>
+          </Button>
+        </form>
+
+        <div className="mt-6 short:mt-5">
+          <AuthDivider label="Or continue with" />
+          <div className="mt-4 flex gap-4">
+            <SocialButton provider="google" />
+            <SocialButton provider="apple" />
+          </div>
+        </div>
+
+        <p className="mt-6 short:mt-5 text-center text-sm text-white/55">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-gold hover:text-gold-light font-medium transition-colors">
+            Sign up
+          </Link>
+        </p>
+      </AuthLayout>
     </>
   );
 };

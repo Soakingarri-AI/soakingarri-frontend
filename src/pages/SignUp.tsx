@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { AuthLayout } from "../layouts/AuthLayout";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthLayout, AuthDivider } from "../layouts/AuthLayout";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { SocialButton } from "../components/ui/SocialButton";
@@ -45,19 +45,20 @@ export const SignUp: React.FC = () => {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">
+      <div className="text-center mb-6 short:mb-4">
+        <h2 className="text-3xl short:text-2xl font-bold text-white mb-1.5 tracking-tight">
           Create your account
         </h2>
-        <p className="text-gray-400">
-          Enter your details to begin the journey.
+        <p className="text-white/55">
+          Start exploring Africa's story with cited, level-aware answers.
         </p>
       </div>
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-4 short:space-y-3" onSubmit={handleSubmit}>
         <Input
           label="Full Name"
-          placeholder="Alex Rivera"
+          placeholder="Amara Okafor"
+          autoComplete="name"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
         />
@@ -65,12 +66,13 @@ export const SignUp: React.FC = () => {
         <Input
           label="Email Address"
           type="email"
-          placeholder="alex@soakingarri.ai"
+          placeholder="name@example.com"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Input
             label="Password"
             isPassword
@@ -80,17 +82,20 @@ export const SignUp: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-white/40">
             At least 8 characters.
           </p>
         </div>
 
         {registerMutation.isError && (
-          <div className="text-red-500 text-sm">{registerError}</div>
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+            {registerError}
+          </div>
         )}
 
         <Button
-          className="w-full mt-2"
+          variant="gold"
+          className="w-full text-base h-12 short:h-11"
           htmlType="submit"
           loading={registerMutation.isPending}
         >
@@ -98,36 +103,34 @@ export const SignUp: React.FC = () => {
         </Button>
       </form>
 
-      <div className="mt-8">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700"></div>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-[#020617] px-4 text-gray-500 tracking-wider">
-              Or continue with
-            </span>
-          </div>
-        </div>
+      <div className="mt-6 short:mt-4">
+        <AuthDivider label="Or continue with" />
 
-        <div className="mt-6 flex gap-4">
+        <div className="mt-4 flex gap-4">
           <SocialButton provider="google" />
           <SocialButton provider="apple" />
         </div>
       </div>
 
-      <p className="mt-10 text-center text-sm text-gray-400">
+      <p className="mt-6 short:mt-4 text-center text-sm text-white/55">
+        Already have an account?{" "}
+        <Link to="/login" className="text-gold hover:text-gold-light font-medium transition-colors">
+          Log in
+        </Link>
+      </p>
+
+      <p className="mt-3 text-center text-xs text-white/40">
         By signing up, you agree to our{" "}
         <a
           href="#"
-          className="text-emerald-500 hover:text-emerald-400 transition-colors"
+          className="text-gold/80 hover:text-gold transition-colors"
         >
           Terms of Service
         </a>{" "}
         and{" "}
         <a
           href="#"
-          className="text-emerald-500 hover:text-emerald-400 transition-colors"
+          className="text-gold/80 hover:text-gold transition-colors"
         >
           Privacy Policy
         </a>

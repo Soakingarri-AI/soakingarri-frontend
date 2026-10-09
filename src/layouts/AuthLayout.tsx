@@ -1,85 +1,145 @@
 import React from 'react';
+import { ConfigProvider } from 'antd';
+import { BookOpen, GraduationCap, Paperclip } from 'lucide-react';
+
+// Brand tokens for every antd control on the auth screens. Tailwind utilities
+// can't recolor antd (its styles are unlayered), so the theme has to.
+const authTheme = {
+  token: {
+    colorPrimary: '#F59E0B',
+    colorPrimaryHover: '#FBBF24',
+    colorBgContainer: '#0F0C07',
+    colorBorder: 'rgba(245, 158, 11, 0.18)',
+  },
+  components: {
+    Input: {
+      colorBgContainer: '#0F0C07',
+      colorBorder: 'rgba(255, 255, 255, 0.1)',
+      activeBorderColor: '#F59E0B',
+      hoverBorderColor: 'rgba(245, 158, 11, 0.6)',
+      activeShadow: '0 0 0 3px rgba(245, 158, 11, 0.12)',
+    },
+    Checkbox: {
+      colorPrimary: '#F59E0B',
+      colorPrimaryHover: '#FBBF24',
+      colorWhite: '#0B0802',
+    },
+    Button: {
+      defaultBg: '#0F0C07',
+      defaultBorderColor: 'rgba(255, 255, 255, 0.12)',
+      defaultHoverBg: '#1A150C',
+      defaultHoverBorderColor: 'rgba(245, 158, 11, 0.5)',
+      defaultHoverColor: '#FFFFFF',
+    },
+  },
+};
+
+const FEATURES = [
+  {
+    icon: BookOpen,
+    title: 'Grounded in real sources',
+    body: 'Every answer on African history comes with citations you can open and check.',
+  },
+  {
+    icon: GraduationCap,
+    title: 'Learn at your level',
+    body: 'Switch between beginner, normal and advanced explanations at any time.',
+  },
+  {
+    icon: Paperclip,
+    title: 'Bring your own documents',
+    body: 'Attach notes, PDFs or images and ask questions about them directly.',
+  },
+];
+
+const Wordmark: React.FC = () => (
+  <div className="flex items-center gap-3">
+    <img
+      src="/logo.png"
+      alt=""
+      className="w-11 h-11 object-contain drop-shadow-[0_0_14px_rgba(245,158,11,0.45)]"
+    />
+    <div>
+      <p className="font-display font-extrabold tracking-[0.12em] text-gold text-base leading-tight">
+        SOAKINGARRI AI
+      </p>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-white/50 leading-tight">
+        The Knowledge Starship
+      </p>
+    </div>
+  </div>
+);
 
 export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-darker flex">
-      {/* Left side - Branding (Hidden on mobile) */}
-      <div className="hidden lg:flex flex-1 flex-col justify-center px-16 relative overflow-hidden border-r border-gray-800">
-        {/* Subtle background particles effect placeholder */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-50"></div>
-          <div className="absolute top-1/3 left-2/3 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.8)] opacity-40"></div>
-          <div className="absolute top-2/3 left-1/5 w-1 h-1 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-60"></div>
-          <div className="absolute top-3/4 left-3/4 w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.8)] opacity-30"></div>
-        </div>
-        
-        <div className="relative z-10 max-w-xl">
-          <div className="flex items-center gap-3 mb-10 bg-gray-900/50 w-fit px-4 py-2 rounded-full border border-gray-800 backdrop-blur-sm">
-            <div className="flex -space-x-2">
-              <div className="w-6 h-6 rounded-full bg-emerald-500 border border-gray-900"></div>
-              <div className="w-6 h-6 rounded-full bg-blue-500 border border-gray-900"></div>
+    <ConfigProvider theme={authTheme}>
+      <div className="h-dvh bg-ink flex overflow-hidden">
+        {/* Left side - brand artwork (hidden on mobile) */}
+        <div className="hidden lg:flex flex-1 relative overflow-hidden border-r border-gold/10">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: 'url(/bg.png)' }}
+          />
+          {/* Darken towards the copy so it stays readable over the artwork */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#070604]/95 via-[#070604]/80 to-[#070604]/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070604] via-transparent to-[#070604]/60" />
+
+          <div className="relative z-10 flex flex-col justify-between w-full px-12 xl:px-14 py-10 short:py-7">
+            <Wordmark />
+
+            <div className="max-w-lg">
+              <div className="inline-flex items-center gap-2 mb-6 short:hidden px-3.5 py-1.5 rounded-full border border-gold/25 bg-black/40 backdrop-blur-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_8px_#F59E0B]" />
+                <span className="text-xs text-white/80">Join 50K+ curious minds</span>
+              </div>
+
+              <h1 className="text-4xl xl:text-5xl short:text-4xl font-bold text-white mb-4 tracking-tight leading-[1.1]">
+                Soak in <span className="gold-text">Africa's story</span>, one question at a time
+              </h1>
+
+              <p className="text-white/65 text-lg short:text-base mb-8 short:mb-6 leading-relaxed">
+                SOAKINGARRI AI turns centuries of African history into clear, cited
+                answers, tuned to how you learn.
+              </p>
+
+              <div className="space-y-4 short:space-y-3">
+                {FEATURES.map(({ icon: Icon, title, body }) => (
+                  <div key={title} className="flex gap-4 items-start">
+                    <div className="mt-0.5 w-9 h-9 short:w-8 short:h-8 shrink-0 rounded-lg bg-gold/10 border border-gold/25 flex items-center justify-center">
+                      <Icon className="w-4 h-4 text-gold" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-semibold">{title}</h3>
+                      <p className="text-white/55 text-sm mt-0.5 leading-snug">{body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <span className="text-xs text-gray-300">Join 50K+ users</span>
+
+            <p className="text-xs text-white/35">© {new Date().getFullYear()} SoakinGarri AI</p>
           </div>
+        </div>
 
-          <h1 className="text-5xl font-bold text-white mb-6 tracking-tight leading-tight">
-            The <span className="text-emerald-500">Knowledge</span> Starship
-          </h1>
-          
-          <p className="text-gray-400 text-lg mb-12 leading-relaxed">
-            Experience the "Quiet Expert." SOAKINGARRI AI processes complex datasets into refined, actionable insights with unprecedented speed and accuracy. Perfect for advance learning.
-          </p>
-
-          <div className="space-y-6">
-            <div className="flex gap-4 items-start">
-              <div className="mt-1 bg-emerald-500/20 p-1 rounded">
-                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-white font-medium text-lg">Advanced Reasoning</h3>
-                <p className="text-emerald-500/80 text-sm mt-1">Deep neural architectures designed for high-stakes decision making.</p>
-              </div>
+        {/* Right side - form */}
+        <div className="flex-1 flex flex-col items-center px-5 sm:px-10 relative auth-panel-bg overflow-y-auto">
+          <div className="w-full max-w-md relative z-10 my-auto py-6 short:py-4">
+            <div className="lg:hidden flex justify-center mb-6 short:mb-4">
+              <Wordmark />
             </div>
-            
-            <div className="flex gap-4 items-start">
-              <div className="mt-1 bg-emerald-500/20 p-1 rounded">
-                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-white font-medium text-lg">Enterprise Security</h3>
-                <p className="text-emerald-500/80 text-sm mt-1">End-to-end encryption with obsidian-grade privacy standards.</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start">
-              <div className="mt-1 bg-emerald-500/20 p-1 rounded">
-                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-white font-medium text-lg">Liquid Latency</h3>
-                <p className="text-emerald-500/80 text-sm mt-1">Instant response times for seamless human-AI collaboration.</p>
-              </div>
-            </div>
+            {children}
           </div>
         </div>
       </div>
-
-      {/* Right side - Form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 relative auth-bg overflow-hidden">
-        {/* Decorative elements behind form */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-900/10 rounded-full blur-[80px] pointer-events-none"></div>
-        
-        <div className="w-full max-w-md relative z-10">
-          {children}
-        </div>
-      </div>
-    </div>
+    </ConfigProvider>
   );
 };
+
+/** "Or continue with" divider; drawn with flex lines so it sits on any background. */
+export const AuthDivider: React.FC<{ label: string }> = ({ label }) => (
+  <div className="flex items-center gap-4">
+    <div className="flex-1 h-px bg-white/10" />
+    <span className="text-[11px] uppercase tracking-[0.18em] text-white/40">{label}</span>
+    <div className="flex-1 h-px bg-white/10" />
+  </div>
+);

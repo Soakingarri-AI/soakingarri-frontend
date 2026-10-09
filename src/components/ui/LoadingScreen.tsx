@@ -1,10 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface LoadingScreenProps {
-  /** Called when the exit animation has fully finished */
+  /** Called once the screen has shown for `minDuration` and `ready` is true */
   onDone: () => void;
-  /** Total visible duration in ms before the exit animation starts (default 2400) */
-  duration?: number;
+  /**
+   * Whether the work behind the screen has finished (e.g. the login request).
+   * Defaults to true, for a purely timed screen.
+   */
+  ready?: boolean;
+  /** Shortest time the screen stays up, so it never just flickers (default 1800) */
+  minDuration?: number;
 }
 
 // Floating particle positions (deterministic so no layout shift)
@@ -21,23 +26,31 @@ const PARTICLES = [
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   onDone,
-  duration = 2400,
+  ready = true,
+  minDuration = 1800,
 }) => {
-  const [exiting, setExiting] = useState(false);
+  const [minElapsed, setMinElapsed] = useState(false);
+
+  // Callers usually pass an inline arrow; keeping it in a ref stops each parent
+  // re-render from restarting the timer.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
-    // Start exit animation before calling onDone
-    const exitTimer = setTimeout(() => setExiting(true), duration);
-    const doneTimer = setTimeout(() => onDone(), duration + 650);
-    return () => {
-      clearTimeout(exitTimer);
-      clearTimeout(doneTimer);
-    };
-  }, [duration, onDone]);
+    const timer = setTimeout(() => setMinElapsed(true), minDuration);
+    return () => clearTimeout(timer);
+  }, [minDuration]);
+
+  // No fade-out on purpose: fading would reveal whatever is underneath (the
+  // login form) before the next page mounts. The screen stays opaque and the
+  // next route replaces it.
+  useEffect(() => {
+    if (minElapsed && ready) onDoneRef.current();
+  }, [minElapsed, ready]);
 
   return (
     <div
-      className={exiting ? "loading-screen-exit" : "loading-screen-enter"}
+      className="loading-screen-enter"
       style={{
         position: "fixed",
         inset: 0,
