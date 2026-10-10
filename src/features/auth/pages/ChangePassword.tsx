@@ -1,12 +1,19 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MainLayout } from "../layouts/MainLayout";
-import { GlassCard } from "../components/ui/GlassCard";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button";
-import { KeyRound, ShieldCheck, ArrowLeft } from "lucide-react";
-import { useChangePassword } from "../hooks/useAuth";
-import { getFieldMessage, getStatus } from "../api/errors";
+import { KeyRound, ShieldCheck } from "lucide-react";
+import {
+  Button,
+  FormError,
+  GlassCard,
+  IconCircle,
+  Input,
+  PageHeader,
+  StarfieldBackground,
+} from "@/shared/ui";
+import { getFieldMessage, getStatus } from "@/shared/api/errors";
+import { ROUTES } from "@/shared/config/routes";
+import { useChangePassword } from "../api/useAuth";
+import { PasswordHint } from "../components";
 
 // Changing a password revokes every session on the server, this one included,
 // so a success here always ends in a trip back to the login screen.
@@ -46,15 +53,13 @@ export const ChangePassword: React.FC = () => {
   /* ── Done — every session was revoked, so log back in ─────────── */
   if (done) {
     return (
-      <MainLayout>
+      <>
         <div className="absolute inset-0 bg-[#070b14] z-0" />
         <div className="relative z-10 flex-1 flex items-center justify-center p-8">
           <GlassCard className="w-full max-w-md text-center">
-            <div className="flex justify-center mb-6">
-              <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
-                <ShieldCheck className="w-6 h-6 text-emerald-500" />
-              </div>
-            </div>
+            <IconCircle>
+              <ShieldCheck className="w-6 h-6 text-emerald-500" />
+            </IconCircle>
             <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
               Password changed
             </h2>
@@ -67,43 +72,26 @@ export const ChangePassword: React.FC = () => {
               glow
               onClick={() => {
                 // Full reload so no stale authenticated state survives.
-                window.location.href = "/login";
+                window.location.href = ROUTES.login;
               }}
             >
               Go to Login
             </Button>
           </GlassCard>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   return (
-    <MainLayout>
-      {/* Background — matches the other in-app screens */}
-      <div className="absolute inset-0 bg-[#070b14] z-0 overflow-hidden">
-        <div className="absolute top-[10%] left-[20%] w-1 h-1 bg-teal-400 rounded-full shadow-[0_0_15px_rgba(45,212,191,1)]"></div>
-        <div className="absolute top-[30%] left-[80%] w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_20px_rgba(16,185,129,1)] opacity-70"></div>
-        <div className="absolute top-[70%] left-[10%] w-2 h-2 bg-teal-200 rounded-full shadow-[0_0_25px_rgba(153,246,228,0.8)] opacity-50"></div>
-        <div className="absolute top-[40%] left-[40%] w-[800px] h-[800px] bg-teal-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-      </div>
+    <>
+      <StarfieldBackground />
+      <PageHeader
+        title="Change Password"
+        onBack={() => navigate(ROUTES.settings)}
+        backLabel="Back to settings"
+      />
 
-      {/* Header */}
-      <div className="relative z-20 flex items-center gap-4 p-6 border-b border-white/5 bg-black/20 backdrop-blur-sm">
-        <button
-          type="button"
-          onClick={() => navigate("/settings")}
-          className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
-          aria-label="Back to settings"
-        >
-          <ArrowLeft className="w-4 h-4 text-gray-300" />
-        </button>
-        <h1 className="text-2xl font-bold text-white tracking-tight">
-          Change Password
-        </h1>
-      </div>
-
-      {/* Content */}
       <div className="relative z-10 flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-md mx-auto">
           <GlassCard className="flex flex-col gap-6">
@@ -137,9 +125,7 @@ export const ChangePassword: React.FC = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
-                <p className="text-xs text-gray-500">
-                  At least 8 characters.
-                </p>
+                <PasswordHint />
               </div>
 
               <Input
@@ -151,15 +137,9 @@ export const ChangePassword: React.FC = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
 
-              {mismatch && (
-                <div className="text-red-500 text-sm">
-                  The new passwords don't match.
-                </div>
-              )}
+              {mismatch && <FormError>The new passwords don't match.</FormError>}
 
-              {changeMutation.isError && (
-                <div className="text-red-500 text-sm">{errorMessage}</div>
-              )}
+              {changeMutation.isError && <FormError>{errorMessage}</FormError>}
 
               <Button
                 className="w-full text-lg h-12"
@@ -173,6 +153,6 @@ export const ChangePassword: React.FC = () => {
           </GlassCard>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };

@@ -1,27 +1,4 @@
-// The minimum a message needs to show an attachment it was sent with.
-export interface AttachmentRef {
-  id: string;
-  filename: string;
-  content_type?: string;
-  kind?: string;
-}
-
-// A file picked in the composer, from selection through upload.
-export interface PendingAttachment {
-  localId: string;
-  file: File;
-  previewUrl?: string;
-  status: 'uploading' | 'ready' | 'error';
-  progress: number;
-  attachment?: AttachmentRef;
-  error?: string;
-}
-
-export const formatBytes = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+import type { AttachmentRef } from '../types';
 
 export const isImage = (contentType?: string, kind?: string) =>
   kind === 'image' || !!contentType?.startsWith('image/');

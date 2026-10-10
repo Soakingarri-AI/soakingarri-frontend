@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AuthLayout } from "../layouts/AuthLayout";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button";
 import { ShieldCheck, KeyRound, LinkIcon } from "lucide-react";
-import { useConfirmPasswordReset } from "../hooks/useAuth";
-import { hasFieldError, getFieldMessage, getStatus } from "../api/errors";
+import { Button, FormError, IconCircle, Input } from "@/shared/ui";
+import { hasFieldError, getFieldMessage, getStatus } from "@/shared/api/errors";
+import { ROUTES } from "@/shared/config/routes";
+import { useConfirmPasswordReset } from "../api/useAuth";
+import { AuthFooterLink, AuthStatus, PasswordHint } from "../components";
 
 export const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -25,7 +25,7 @@ export const ResetPassword: React.FC = () => {
   // screenshot or a shared link.
   useEffect(() => {
     if (searchParams.get("token")) {
-      navigate("/reset-password", { replace: true });
+      navigate(ROUTES.resetPassword, { replace: true });
     }
   }, [searchParams, navigate]);
 
@@ -62,68 +62,40 @@ export const ResetPassword: React.FC = () => {
 
   if (done) {
     return (
-      <AuthLayout>
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
-              <ShieldCheck className="w-6 h-6 text-emerald-500" />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            Password updated
-          </h2>
-          <p className="text-gray-400 mb-8">
-            Your password has been reset. You can now log in with your new password.
-          </p>
-          <Button className="w-full" onClick={() => navigate("/login")}>
-            Go to Login
-          </Button>
-        </div>
-      </AuthLayout>
+      <AuthStatus
+        icon={<ShieldCheck className="w-6 h-6 text-emerald-500" />}
+        title="Password updated"
+        description="Your password has been reset. You can now log in with your new password."
+      >
+        <Button className="w-full" onClick={() => navigate(ROUTES.login)}>
+          Go to Login
+        </Button>
+      </AuthStatus>
     );
   }
 
   /* ── Opened without a token — the link is missing or was mangled ── */
   if (!token) {
     return (
-      <AuthLayout>
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
-              <LinkIcon className="w-6 h-6 text-red-500" />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            This link isn't valid
-          </h2>
-          <p className="text-gray-400 mb-8">
-            Open the reset link straight from your email, or request a new one —
-            they expire after a while and can only be used once.
-          </p>
-          <Button className="w-full" onClick={() => navigate("/forgot-password")}>
-            Request a new link
-          </Button>
-          <p className="mt-8 text-center text-sm text-gray-400">
-            <Link
-              to="/login"
-              className="text-emerald-500 hover:text-emerald-400 transition-colors"
-            >
-              Back to Login
-            </Link>
-          </p>
-        </div>
-      </AuthLayout>
+      <AuthStatus
+        icon={<LinkIcon className="w-6 h-6 text-red-500" />}
+        title="This link isn't valid"
+        description="Open the reset link straight from your email, or request a new one — they expire after a while and can only be used once."
+      >
+        <Button className="w-full" onClick={() => navigate(ROUTES.forgotPassword)}>
+          Request a new link
+        </Button>
+        <AuthFooterLink to={ROUTES.login} label="Back to Login" />
+      </AuthStatus>
     );
   }
 
   return (
-    <AuthLayout>
+    <>
       <div className="text-center mb-8">
-        <div className="flex justify-center mb-6">
-          <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
-            <KeyRound className="w-6 h-6 text-gray-300" />
-          </div>
-        </div>
+        <IconCircle>
+          <KeyRound className="w-6 h-6 text-gray-300" />
+        </IconCircle>
         <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
           Reset your password
         </h2>
@@ -143,9 +115,7 @@ export const ResetPassword: React.FC = () => {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
-          <p className="text-xs text-gray-500">
-            At least 8 characters.
-          </p>
+          <PasswordHint />
         </div>
 
         <Input
@@ -156,19 +126,17 @@ export const ResetPassword: React.FC = () => {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
 
-        {mismatch && (
-          <div className="text-red-500 text-sm">Passwords don't match.</div>
-        )}
+        {mismatch && <FormError>Passwords don't match.</FormError>}
 
         {confirmMutation.isError && (
-          <div className="text-red-500 text-sm">
+          <FormError>
             {errorMessage}{" "}
             {!isPasswordIssue && (
-              <Link to="/forgot-password" className="text-emerald-500 hover:text-emerald-400">
+              <Link to={ROUTES.forgotPassword} className="text-emerald-500 hover:text-emerald-400">
                 Request a new link
               </Link>
             )}
-          </div>
+          </FormError>
         )}
 
         <Button
@@ -181,15 +149,7 @@ export const ResetPassword: React.FC = () => {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-gray-400">
-        Remembered your password?{" "}
-        <Link
-          to="/login"
-          className="text-emerald-500 hover:text-emerald-400 transition-colors"
-        >
-          Log in
-        </Link>
-      </p>
-    </AuthLayout>
+      <AuthFooterLink to={ROUTES.login} prompt="Remembered your password?" label="Log in" />
+    </>
   );
 };

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient, setTokens, clearTokens } from '../api/client';
-import { AUTH_ENDPOINTS } from '../api/constants';
+import { apiClient, setTokens, clearTokens, getRefreshToken } from '@/shared/api/client';
+import { AUTH_ENDPOINTS } from '@/shared/api/endpoints';
+import { ROUTES } from '@/shared/config/routes';
 import type {
   User,
   AuthSession,
@@ -11,7 +12,12 @@ import type {
   ResendVerificationPayload,
   ChangePasswordPayload,
   MessageResponse,
-} from '../api/types';
+} from './types';
+
+export const authKeys = {
+  all: ['auth'] as const,
+  me: () => [...authKeys.all, 'me'] as const,
+};
 
 // A login against an unconfirmed address comes back 403 carrying
 // X-Auth-Error-Code: email_not_verified. That header is only readable from the
@@ -40,7 +46,7 @@ export const useLogin = () => {
       setTokens(data);
       // The login payload carries the profile, so seed the cache with it and
       // skip the extra /auth/me round-trip on the next screen.
-      queryClient.setQueryData(['auth', 'me'], data.user);
+      queryClient.setQueryData(authKeys.me(), data.user);
     },
   });
 };
@@ -56,7 +62,7 @@ export const useVerifyEmail = () => {
     },
     onSuccess: (data) => {
       setTokens(data);
-      queryClient.setQueryData(['auth', 'me'], data.user);
+      queryClient.setQueryData(authKeys.me(), data.user);
     },
   });
 };
@@ -91,7 +97,7 @@ export const useLogout = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = getRefreshToken();
       // API requires the refresh token in the body so it can be denylisted
       await apiClient.post(AUTH_ENDPOINTS.LOGOUT, {
         ...(refreshToken ? { refresh_token: refreshToken } : {}),
@@ -100,13 +106,13 @@ export const useLogout = () => {
     onSuccess: () => {
       clearTokens();
       queryClient.clear();
-      window.location.href = '/login';
+      window.location.href = ROUTES.login;
     },
     onError: () => {
       // Even if API fails, clear local tokens
       clearTokens();
       queryClient.clear();
-      window.location.href = '/login';
+      window.location.href = ROUTES.login;
     }
   });
 };
@@ -114,7 +120,7 @@ export const useLogout = () => {
 // Get Current User Hook
 export const useUser = () => {
   return useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: authKeys.me(),
     queryFn: async () => {
       const { data } = await apiClient.get<User>(AUTH_ENDPOINTS.ME);
       return data;

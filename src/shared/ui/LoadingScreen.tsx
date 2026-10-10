@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface LoadingScreenProps {
   /** Called once the screen has shown for `minDuration` and `ready` is true */
@@ -48,7 +49,9 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
     if (minElapsed && ready) onDoneRef.current();
   }, [minElapsed, ready]);
 
-  return (
+  // Portalled to <body> so it covers the whole viewport whatever layout,
+  // stacking context or scroll container the caller happens to sit in.
+  return createPortal(
     <div
       className="loading-screen-enter"
       style={{
@@ -197,6 +200,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
-import { UPLOAD_ENDPOINTS } from '../api/constants';
-import type { Attachment, AttachmentDetail, UploadLimits } from '../api/types';
+import { apiClient } from '@/shared/api/client';
+import { UPLOAD_ENDPOINTS } from '@/shared/api/endpoints';
+import type { Attachment, AttachmentDetail, UploadLimits } from './types';
 
 export const uploadKeys = {
   all: ['uploads'] as const,

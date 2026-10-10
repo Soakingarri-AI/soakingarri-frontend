@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AuthLayout } from "../layouts/AuthLayout";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MailCheck, RefreshCw, KeyRound } from "lucide-react";
-import { useResendVerification } from "../hooks/useAuth";
+import { Button, FormError, Input } from "@/shared/ui";
+import { getStatus } from "@/shared/api/errors";
+import { ROUTES, withQuery } from "@/shared/config/routes";
+import { useResendVerification } from "../api/useAuth";
+import { AuthFooterLink, AuthStatus } from "../components";
 
 // Shown after signing up, and whenever a login is refused because the address
 // has not been confirmed yet. The resend endpoint deliberately returns the same
@@ -29,24 +30,15 @@ export const CheckEmail: React.FC = () => {
     );
   };
 
-  const isValidationError =
-    resendMutation.isError &&
-    (resendMutation.error as any)?.response?.status === 422;
+  const isValidationError = getStatus(resendMutation.error) === 422;
 
   return (
-    <AuthLayout>
-      <div className="text-center">
-        <div className="flex justify-center mb-6">
-          <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
-            <MailCheck className="w-6 h-6 text-emerald-500" />
-          </div>
-        </div>
-
-        <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-          Verify your email
-        </h2>
-        <p className="text-gray-400 mb-8">
-          {email ? (
+    <>
+      <AuthStatus
+        icon={<MailCheck className="w-6 h-6 text-emerald-500" />}
+        title="Verify your email"
+        description={
+          email ? (
             <>
               We've sent a verification link to{" "}
               <span className="text-white">{email}</span>. Open it to activate
@@ -57,9 +49,9 @@ export const CheckEmail: React.FC = () => {
               Your account needs to be verified before you can log in. Enter your
               email below and we'll send a fresh link.
             </>
-          )}
-        </p>
-      </div>
+          )
+        }
+      />
 
       {resent ? (
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 mb-6 text-center">
@@ -81,11 +73,11 @@ export const CheckEmail: React.FC = () => {
           )}
 
           {resendMutation.isError && (
-            <div className="text-red-500 text-sm">
+            <FormError>
               {isValidationError
                 ? "Please enter a valid email address."
                 : "Couldn't resend the link. Please try again."}
-            </div>
+            </FormError>
           )}
 
           <Button
@@ -113,27 +105,14 @@ export const CheckEmail: React.FC = () => {
         <Button
           variant="outline"
           className="w-full gap-2"
-          onClick={() =>
-            navigate(
-              email
-                ? `/forgot-password?email=${encodeURIComponent(email)}`
-                : "/forgot-password"
-            )
-          }
+          onClick={() => navigate(withQuery(ROUTES.forgotPassword, { email }))}
         >
           <KeyRound className="w-4 h-4" />
           Confirm by resetting my password
         </Button>
       </div>
 
-      <p className="mt-8 text-center text-sm text-gray-400">
-        <Link
-          to="/login"
-          className="text-emerald-500 hover:text-emerald-400 transition-colors"
-        >
-          Back to Login
-        </Link>
-      </p>
-    </AuthLayout>
+      <AuthFooterLink to={ROUTES.login} label="Back to Login" />
+    </>
   );
 };

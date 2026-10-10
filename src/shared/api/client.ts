@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { API_BASE_URL, AUTH_ENDPOINTS } from './constants';
+import { API_BASE_URL, AUTH_ENDPOINTS } from './endpoints';
 import type { AuthTokens } from './types';
+import { ROUTES } from '@/shared/config/routes';
 
 // Helper to get/set tokens from localStorage (fallback when cookies aren't available)
 export const getToken = () => localStorage.getItem('access_token');
@@ -66,7 +67,7 @@ apiClient.interceptors.response.use(
       // A failed refresh means the session truly is dead — bounce to login.
       if (originalRequest.url === AUTH_ENDPOINTS.REFRESH) {
         clearTokens();
-        window.location.href = '/login';
+        window.location.href = ROUTES.login;
         return Promise.reject(error);
       }
 
@@ -107,7 +108,7 @@ apiClient.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
         clearTokens();
-        window.location.href = '/login';
+        window.location.href = ROUTES.login;
         return Promise.reject(refreshError);
       }
     }

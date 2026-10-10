@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AuthLayout } from "../layouts/AuthLayout";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button";
 import { MailCheck } from "lucide-react";
-import { useRequestPasswordReset } from "../hooks/useAuth";
+import { Button, FormError, Input } from "@/shared/ui";
+import { getStatus } from "@/shared/api/errors";
+import { ROUTES, withQuery } from "@/shared/config/routes";
+import { useRequestPasswordReset } from "../api/useAuth";
+import { AuthFooterLink, AuthStatus } from "../components";
 
 // The backend never reveals whether an email is registered, so the UI always
 // shows the same confirmation regardless of outcome — except real validation
@@ -36,54 +37,42 @@ export const ForgotPassword: React.FC = () => {
     );
   };
 
-  const isValidationError =
-    resetMutation.isError &&
-    (resetMutation.error as any)?.response?.status === 422;
+  const isValidationError = getStatus(resetMutation.error) === 422;
 
   if (submitted) {
     return (
-      <AuthLayout>
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-14 h-14 rounded-full border border-gray-700 flex items-center justify-center bg-[#0f172a]">
-              <MailCheck className="w-6 h-6 text-emerald-500" />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            Check your email
-          </h2>
-          <p className="text-gray-400 mb-8">
+      <AuthStatus
+        icon={<MailCheck className="w-6 h-6 text-emerald-500" />}
+        title="Check your email"
+        description={
+          <>
             If an account exists for <span className="text-white">{email}</span>, we've sent
             instructions to reset your password.
-          </p>
+          </>
+        }
+      >
+        {devToken && (
+          <div className="mb-8 text-left rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+            <p className="text-xs font-semibold text-amber-500 mb-1">Development mode</p>
+            <p className="text-xs text-gray-300 mb-3 break-all">Reset token: {devToken}</p>
+            <Link
+              to={withQuery(ROUTES.resetPassword, { token: devToken })}
+              className="text-xs text-emerald-500 hover:text-emerald-400"
+            >
+              Continue to reset password →
+            </Link>
+          </div>
+        )}
 
-          {devToken && (
-            <div className="mb-8 text-left rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-              <p className="text-xs font-semibold text-amber-500 mb-1">
-                Development mode
-              </p>
-              <p className="text-xs text-gray-300 mb-3 break-all">
-                Reset token: {devToken}
-              </p>
-              <Link
-                to={`/reset-password?token=${encodeURIComponent(devToken)}`}
-                className="text-xs text-emerald-500 hover:text-emerald-400"
-              >
-                Continue to reset password →
-              </Link>
-            </div>
-          )}
-
-          <Button className="w-full" onClick={() => navigate("/login")}>
-            Back to Login
-          </Button>
-        </div>
-      </AuthLayout>
+        <Button className="w-full" onClick={() => navigate(ROUTES.login)}>
+          Back to Login
+        </Button>
+      </AuthStatus>
     );
   }
 
   return (
-    <AuthLayout>
+    <>
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
           Forgot Password?
@@ -103,11 +92,11 @@ export const ForgotPassword: React.FC = () => {
         />
 
         {resetMutation.isError && (
-          <div className="text-red-500 text-sm">
+          <FormError>
             {isValidationError
               ? "Please enter a valid email address."
               : "Something went wrong. Please try again."}
-          </div>
+          </FormError>
         )}
 
         <Button
@@ -120,15 +109,7 @@ export const ForgotPassword: React.FC = () => {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-gray-400">
-        Remembered your password?{" "}
-        <Link
-          to="/login"
-          className="text-emerald-500 hover:text-emerald-400 transition-colors"
-        >
-          Log in
-        </Link>
-      </p>
-    </AuthLayout>
+      <AuthFooterLink to={ROUTES.login} prompt="Remembered your password?" label="Log in" />
+    </>
   );
 };

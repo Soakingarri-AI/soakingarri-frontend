@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ExternalLink, BookOpen } from 'lucide-react';
-import type { AskSource } from '../../api/types';
+import type { AskSource } from '../api/types';
 
 interface SourceCitationsProps {
   sources: AskSource[];

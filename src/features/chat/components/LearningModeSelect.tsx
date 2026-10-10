@@ -1,6 +1,6 @@
 import React from 'react';
 import { GraduationCap } from 'lucide-react';
-import type { LearningMode } from '../../api/types';
+import type { LearningMode } from '../api/types';
 
 const OPTIONS: { value: LearningMode; label: string }[] = [
   { value: 'beginner', label: 'Beginner' },

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
-import { ASK_ENDPOINTS } from '../api/constants';
-import type { AskRequest, AskResponse, AskSessionDetail, AskSessionSummary } from '../api/types';
+import { apiClient } from '@/shared/api/client';
+import { ASK_ENDPOINTS } from '@/shared/api/endpoints';
+import type { AskRequest, AskResponse, AskSessionDetail, AskSessionSummary } from './types';
 
 export const askKeys = {
   all: ['ask'] as const,

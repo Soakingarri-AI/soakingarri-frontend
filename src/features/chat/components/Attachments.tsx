@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { message } from 'antd';
 import { FileText, X, AlertCircle, Download } from 'lucide-react';
-import { useAttachmentContent, useDownloadAttachment } from '../../hooks/useUploads';
-import { formatBytes, isImage, type AttachmentRef, type PendingAttachment } from './attachmentUtils';
+import { useAttachmentContent, useDownloadAttachment } from '../api/useUploads';
+import { formatBytes } from '@/shared/lib/format';
+import { isImage } from '../utils/attachments';
+import type { AttachmentRef, PendingAttachment } from '../types';
 
 /* ── Composer ────────────────────────────────────────────────────── */
 

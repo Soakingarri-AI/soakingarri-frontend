@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthLayout, AuthDivider } from "../layouts/AuthLayout";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button";
-import { SocialButton } from "../components/ui/SocialButton";
-import { useRegister } from "../hooks/useAuth";
-import { getFieldMessage, getStatus } from "../api/errors";
+import { Button, FormError, Input, SocialButton } from "@/shared/ui";
+import { getFieldMessage, getStatus } from "@/shared/api/errors";
+import { ROUTES, withQuery } from "@/shared/config/routes";
+import { useRegister } from "../api/useAuth";
+import { AuthDivider, PasswordHint } from "../components";
 
 export const SignUp: React.FC = () => {
   const [fullName, setFullName] = useState("");
@@ -24,7 +23,7 @@ export const SignUp: React.FC = () => {
         onSuccess: () => {
           // The account exists but can't sign in until the emailed link is
           // used, so point them at their inbox rather than the login form.
-          navigate(`/check-email?email=${encodeURIComponent(email)}`);
+          navigate(withQuery(ROUTES.checkEmail, { email }));
         },
         onError: (error) => {
           console.error("Registration failed:", error);
@@ -44,7 +43,7 @@ export const SignUp: React.FC = () => {
           : "Failed to register. Please try again.");
 
   return (
-    <AuthLayout>
+    <>
       <div className="text-center mb-6 short:mb-4">
         <h2 className="text-3xl short:text-2xl font-bold text-white mb-1.5 tracking-tight">
           Create your account
@@ -82,15 +81,11 @@ export const SignUp: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <p className="text-xs text-white/40">
-            At least 8 characters.
-          </p>
+          <PasswordHint className="text-white/40" />
         </div>
 
         {registerMutation.isError && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
-            {registerError}
-          </div>
+          <FormError>{registerError}</FormError>
         )}
 
         <Button
@@ -114,7 +109,7 @@ export const SignUp: React.FC = () => {
 
       <p className="mt-6 short:mt-4 text-center text-sm text-white/55">
         Already have an account?{" "}
-        <Link to="/login" className="text-gold hover:text-gold-light font-medium transition-colors">
+        <Link to={ROUTES.login} className="text-gold hover:text-gold-light font-medium transition-colors">
           Log in
         </Link>
       </p>
@@ -136,6 +131,6 @@ export const SignUp: React.FC = () => {
         </a>
         .
       </p>
-    </AuthLayout>
+    </>
   );
 };
