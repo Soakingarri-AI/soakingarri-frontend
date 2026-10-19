@@ -1,6 +1,7 @@
 import React from 'react';
 import { SourceCitations } from './SourceCitations';
 import { MessageAttachments } from './Attachments';
+import { MarkdownContent } from './MarkdownContent';
 import type { ChatMessageVM } from '../types';
 
 interface ChatMessageProps {
@@ -30,11 +31,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message: msg, userInit
         <div className="w-3 h-1.5 bg-yellow-500 rounded-full blur-[0.5px]"></div>
       </div>
       <div
-        className={`glass-panel px-6 py-5 rounded-2xl rounded-tl-sm max-w-3xl leading-relaxed whitespace-pre-wrap ${
-          msg.isError ? 'text-red-400 border-red-500/30' : 'text-gray-200'
+        className={`glass-panel px-6 py-5 rounded-2xl rounded-tl-sm max-w-3xl leading-relaxed ${
+          msg.isError ? 'text-red-400 border-red-500/30 whitespace-pre-wrap' : 'text-gray-200'
         }`}
       >
-        {msg.content}
+        {msg.isError ? msg.content : <MarkdownContent content={msg.content} />}
         {msg.sources && <SourceCitations sources={msg.sources} />}
       </div>
     </div>
